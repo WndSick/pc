@@ -309,3 +309,250 @@ int main()
 
     return 0;
 }
+
+//Program 5
+#include <stdio.h>
+#include <mpi.h>
+
+int main(int argc, char *argv[])
+{
+    int rank, size;
+    int number;
+
+    MPI_Init(&argc, &argv);
+
+    // Get total number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    // Get rank of current process
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    if (size < 2)
+    {
+        if (rank == 0)
+        {
+            printf("This program requires at least 2 processes.\n");
+        }
+
+        MPI_Finalize();
+        return 0;
+    }
+
+    if (rank == 0)
+    {
+        number = 42;
+
+        printf("Process 0 is sending number %d to Process 1\n",
+               number);
+
+        MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+    }
+
+    else if (rank == 1)
+    {
+        MPI_Recv(&number, 1, MPI_INT, 0, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        printf("Process 1 received number %d from Process 0\n",
+               number);
+    }
+
+    MPI_Finalize();
+
+    return 0;
+}
+
+//Program 6
+#include <stdio.h>
+#include <mpi.h>
+
+int main(int argc, char *argv[])
+{
+    int rank, data_send, data_recv;
+
+    // ==================================================
+    // SECTION 1: INITIALIZE MPI
+    // ==================================================
+
+    MPI_Init(&argc, &argv);
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // Each process sends its own rank
+    data_send = rank;
+
+    // ==================================================
+    // SECTION 2: PROCESS 0
+    // ==================================================
+
+    if (rank == 0)
+    {
+        // Send 0 to Process 1
+        MPI_Send(&data_send, 1, MPI_INT, 1, 0,
+                 MPI_COMM_WORLD);
+
+        // Receive 1 from Process 1
+        MPI_Recv(&data_recv, 1, MPI_INT, 1, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    // ==================================================
+    // SECTION 3: PROCESS 1
+    // ==================================================
+
+    else if (rank == 1)
+    {
+        // Send 1 to Process 0
+        MPI_Send(&data_send, 1, MPI_INT, 0, 0,
+                 MPI_COMM_WORLD);
+
+        // Receive 0 from Process 0
+        MPI_Recv(&data_recv, 1, MPI_INT, 0, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    // ==================================================
+    // SECTION 4: DISPLAY RESULT
+    // ==================================================
+
+    printf("Process %d received %d\n", rank, data_recv);
+
+    // ==================================================
+    // SECTION 5: FINALIZE MPI
+    // ==================================================
+
+    MPI_Finalize();
+
+    return 0;
+}
+
+//Program 7
+#include <stdio.h>
+#include <mpi.h>
+
+int main(int argc, char** argv)
+{
+    int rank, data = 0;
+
+    // ==================================================
+    // SECTION 1: INITIALIZE MPI
+    // ==================================================
+
+    MPI_Init(&argc, &argv);
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // ==================================================
+    // SECTION 2: ROOT PROCESS SETS DATA
+    // ==================================================
+
+    if (rank == 0)
+    {
+        data = 100;
+    }
+
+    // ==================================================
+    // SECTION 3: BROADCAST DATA
+    // ==================================================
+
+    MPI_Bcast(&data, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    // ==================================================
+    // SECTION 4: DISPLAY DATA
+    // ==================================================
+
+    printf("Process %d received data: %d\n", rank, data);
+
+    // ==================================================
+    // SECTION 5: FINALIZE MPI
+    // ==================================================
+
+    MPI_Finalize();
+
+    return 0;
+}
+
+//Program 8
+#include <stdio.h>
+#include <mpi.h>
+
+int main(int argc, char** argv)
+{
+    int rank, size;
+    int send_data[4] = {10, 20, 30, 40};
+    int recv_data;
+
+    // Initialize MPI
+    MPI_Init(&argc, &argv);
+
+    // Get process information
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    // Scatter data from Process 0 to all processes
+    MPI_Scatter(send_data, 1, MPI_INT,
+                &recv_data, 1, MPI_INT,
+                0, MPI_COMM_WORLD);
+
+    printf("Process %d received: %d\n", rank, recv_data);
+
+    // Modify the received data
+    recv_data += 1;
+
+    // Gather modified data back to Process 0
+    MPI_Gather(&recv_data, 1, MPI_INT,
+               send_data, 1, MPI_INT,
+               0, MPI_COMM_WORLD);
+
+    // Process 0 prints the gathered data
+    if (rank == 0)
+    {
+        printf("Gathered data: ");
+
+        for (int i = 0; i < size; i++)
+            printf("%d ", send_data[i]);
+
+        printf("\n");
+    }
+
+    // Finalize MPI
+    MPI_Finalize();
+
+    return 0;
+}
+
+//Program 9
+#include <stdio.h>
+#include <mpi.h>
+
+int main(int argc, char** argv)
+{
+    int rank, value, sum, max;
+
+    // Initialize MPI
+    MPI_Init(&argc, &argv);
+
+    // Get process rank
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // Each process gets a different value
+    value = rank + 1;
+
+    // Reduce: calculate sum and store result at Process 0
+    MPI_Reduce(&value, &sum, 1, MPI_INT,
+               MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0)
+        printf("Sum using Reduce: %d\n", sum);
+
+    // Allreduce: calculate maximum and give result to all processes
+    MPI_Allreduce(&value, &max, 1, MPI_INT,
+                  MPI_MAX, MPI_COMM_WORLD);
+
+    printf("Max using Allreduce (rank %d): %d\n", rank, max);
+
+    // Finalize MPI
+    MPI_Finalize();
+
+    return 0;
+}
